@@ -545,6 +545,135 @@ class BashTranslator(Translator):
         return f'{name}={str_val}'
 
 
+class TypescriptTranslator(Translator):
+    @classmethod
+    def translate_none(cls, val):
+        return 'nil'
+
+    @classmethod
+    def translate_bool(cls, val):
+        return 'true' if val else 'false'
+
+    @classmethod
+    def translate_int(cls, val):
+        strval = cls.translate_raw_str(val)
+        return strval
+
+    @classmethod
+    def translate_dict(cls, val):
+        """Translate dicts to nontyped dictionary"""
+        escaped = ', '.join([f"""{cls.translate_str(k)}: {cls.translate(v)}""" for k, v in val.items()])
+        return f'{{{escaped}}}'
+
+    @classmethod
+    def translate_list(cls, val):
+        """Translate list to array"""
+        escaped = ', '.join([cls.translate(v) for v in val])
+        return f'[{escaped}]'
+
+    @classmethod
+    def comment(cls, cmt_str):
+        return f'// {cmt_str}'.strip()
+
+    @classmethod
+    def assign(cls, name, str_val):
+        return f'const {name} = {str_val};'
+
+    # TODO: implement parameter parsing / inspect
+    # Note this is only implemented in PythonTranslator and not in other implementations
+    # Pattern to capture parameters within cell input
+    COMMENT = "//"
+    PARAMETER_PATTERN = re.compile(
+        r"^(?P<target>\w[\w_]*)\s*(:\s*[\"']?(?P<annotation>\w[\w_\[\],\s]*)[\"']?\s*)?=\s*(?P<value>.*?)(\s*{COMMENT}\s*(type:\s*(?P<type_comment>[^\s]*)\s*)?(?P<help>.*))?$"
+    )
+
+    # Not implemented
+    #@classmethod
+    #def inspect(cls, parameters_cell):
+    #    """Inspect the parameters cell to get a Parameter list
+
+    #    It must return an empty list if no parameters are found and
+    #    it should ignore inspection errors.
+
+    #    Parameters
+    #    ----------
+    #    parameters_cell : NotebookNode
+    #        Cell tagged _parameters_
+
+    #    Returns
+    #    -------
+    #    List[Parameter]
+    #        A list of all parameters
+    #    """
+    #    params = []
+    #    src = parameters_cell['source']
+
+    #    def flatten_accumulator(accumulator):
+    #        """Flatten a multilines variable definition.
+
+    #        Remove all comments except on the latest line - will be interpreted as help.
+
+    #        Args:
+    #            accumulator (List[str]): Line composing the variable definition
+    #        Returns:
+    #            Flatten definition
+    #        """
+    #        flat_string = ""
+    #        for line in accumulator[:-1]:
+    #            if "#" in line:
+    #                comment_pos = line.index("#")
+    #                flat_string += line[:comment_pos].strip()
+    #            else:
+    #                flat_string += line.strip()
+    #        if len(accumulator):
+    #            flat_string += accumulator[-1].strip()
+    #        return flat_string
+
+    #    # Some common type like dictionaries or list can be expressed over multiline.
+    #    # To support the parsing of such case, the cell lines are grouped between line
+    #    # actually containing an assignment. In each group, the commented and empty lines
+    #    # are skip; i.e. the parameter help can only be given as comment on the last variable
+    #    # line definition
+    #    grouped_variable = []
+    #    accumulator = []
+    #    for iline, line in enumerate(src.splitlines()):
+    #        if len(line.strip()) == 0 or line.strip().startswith('#'):
+    #            continue  # Skip blank and comment
+
+    #        nequal = line.count("=")
+    #        if nequal > 0:
+    #            grouped_variable.append(flatten_accumulator(accumulator))
+    #            accumulator = []
+    #            if nequal > 1:
+    #                logger.warning(f"Unable to parse line {iline + 1} '{line}'.")
+    #                continue
+
+    #        accumulator.append(line)
+    #    grouped_variable.append(flatten_accumulator(accumulator))
+
+    #    for definition in grouped_variable:
+    #        if len(definition) == 0:
+    #            continue
+
+    #        match = re.match(cls.PARAMETER_PATTERN, definition)
+    #        if match is not None:
+    #            attr = match.groupdict()
+    #            if attr["target"] is None:  # Fail to get variable name
+    #                continue
+
+    #            type_name = str(attr["annotation"] or attr["type_comment"] or None)
+    #            params.append(
+    #                Parameter(
+    #                    name=attr["target"].strip(),
+    #                    inferred_type_name=type_name.strip(),
+    #                    default=str(attr["value"]).strip(),
+    #                    help=str(attr["help"] or "").strip(),
+    #                )
+    #            )
+
+    #    return params
+
+
 # Instantiate a PapermillIO instance and register Handlers.
 papermill_translators = PapermillTranslators()
 papermill_translators.register("python", PythonTranslator)
@@ -559,6 +688,7 @@ papermill_translators.register("pysparkkernel", PythonTranslator)
 papermill_translators.register("sparkkernel", ScalaTranslator)
 papermill_translators.register("sparkrkernel", RTranslator)
 papermill_translators.register("bash", BashTranslator)
+papermill_translators.register("typescript", TypescriptTranslator)
 
 
 def translate_parameters(kernel_name, language, parameters, comment='Parameters'):
