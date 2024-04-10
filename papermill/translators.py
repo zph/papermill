@@ -577,7 +577,7 @@ class TypescriptTranslator(Translator):
 
     @classmethod
     def assign(cls, name, str_val):
-        return f'var {name} = {str_val};'
+        return f'let {name} = {str_val};'
 
     # TODO: implement parameter parsing / inspect
     # Note this is only implemented in PythonTranslator and not in other implementations
