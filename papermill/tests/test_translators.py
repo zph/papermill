@@ -628,3 +628,107 @@ def test_translate_comment_sh(test_input, expected):
 )
 def test_translate_codify_sh(parameters, expected):
     assert translators.BashTranslator.codify(parameters) == expected
+
+
+## TypescriptTranslator
+# @pytest.mark.parametrize(
+#     "test_input,expected",
+#     [
+#         ("foo", '"foo"'),
+#         ('{"foo": "bar"}', '"{\\"foo\\": \\"bar\\"}"'),
+#         ({"foo": "bar"}, '{"foo": "bar"}'),
+#         ({"foo": '"bar"'}, '{"foo": "\\"bar\\""}'),
+#         ({"foo": ["bar"]}, '{"foo": ["bar"]}'),
+#         ({"foo": {"bar": "baz"}}, '{"foo": {"bar": "baz"}}'),
+#         ({"foo": {"bar": '"baz"'}}, '{"foo": {"bar": "\\"baz\\""}}'),
+#         (["foo"], '["foo"]'),
+#         (["foo", '"bar"'], '["foo", "\\"bar\\""]'),
+#         ([{"foo": "bar"}], '[{"foo": "bar"}]'),
+#         ([{"foo": '"bar"'}], '[{"foo": "\\"bar\\""}]'),
+#         (12345, '12345'),
+#         (-54321, '-54321'),
+#         (1.2345, '1.2345'),
+#         (-5432.1, '-5432.1'),
+#         (float('nan'), "float('nan')"),
+#         (float('-inf'), "float('-inf')"),
+#         (float('inf'), "float('inf')"),
+#         (True, 'True'),
+#         (False, 'False'),
+#         (None, 'None'),
+#     ],
+# )
+# def test_translate_type_python(test_input, expected):
+#     assert translators.PythonTranslator.translate(test_input) == expected
+
+
+# @pytest.mark.parametrize(
+#     "parameters,expected",
+#     [
+#         ({"foo": "bar"}, '# Parameters\nfoo = "bar"\n'),
+#         ({"foo": True}, '# Parameters\nfoo = True\n'),
+#         ({"foo": 5}, '# Parameters\nfoo = 5\n'),
+#         ({"foo": 1.1}, '# Parameters\nfoo = 1.1\n'),
+#         ({"foo": ['bar', 'baz']}, '# Parameters\nfoo = ["bar", "baz"]\n'),
+#         ({"foo": {'bar': 'baz'}}, '# Parameters\nfoo = {"bar": "baz"}\n'),
+#         (
+#             OrderedDict([['foo', 'bar'], ['baz', ['buz']]]),
+#             '# Parameters\nfoo = "bar"\nbaz = ["buz"]\n',
+#         ),
+#     ],
+# )
+# def test_translate_codify_python(parameters, expected):
+#     assert translators.PythonTranslator.codify(parameters) == expected
+
+
+# @pytest.mark.parametrize("test_input,expected", [("", '#'), ("foo", '# foo'), ("['best effort']", "# ['best effort']")])
+# def test_translate_comment_python(test_input, expected):
+#     assert translators.PythonTranslator.comment(test_input) == expected
+
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        ("let a = 2", [Parameter("a", "None", "2", "")]),
+        ("let a: int = 2", [Parameter("a", "int", "2", "")]),
+        ("let a = false // Nice variable a", [Parameter("a", "None", "false", "Nice variable a")]),
+        (
+            "let a: float = 2.258 // Nice variable a",
+            [Parameter("a", "float", "2.258", "Nice variable a")],
+        ),
+        (
+            "let a = 'this is a string' // Nice variable a",
+            [Parameter("a", "None", "'this is a string'", "Nice variable a")],
+        ),
+        (
+            "let a: []string = ['this', 'is', 'a', 'string', 'list'] // Nice variable a",
+            [Parameter("a", "[]string", "['this', 'is', 'a', 'string', 'list']", "Nice variable a")],
+        ),
+        (
+            "let a: []string = [\n    'this', // First\n    'is',\n    'a',\n    'string',\n    'list' // Last\n] // Nice variable a",  # noqa
+            [Parameter("a", "[]string", "['this','is','a','string','list']", "Nice variable a")],
+        ),
+        (
+            "let a: []string = [\n    'this',\n    'is',\n    'a',\n    'string',\n    'list'\n] // Nice variable a",
+            [Parameter("a", "[]string", "['this','is','a','string','list']", "Nice variable a")],
+        ),
+        (
+            """let a: []string = [
+                'this', // First
+                'is',
+                'a',
+                'string',
+                'list' // Last
+            ] // Nice variable a
+
+            let b: float = -2.3432 // My b variable
+            """,
+            [
+                Parameter("a", "[]string", "['this','is','a','string','list']", "Nice variable a"),
+                Parameter("b", "float", "-2.3432", "My b variable"),
+            ],
+        ),
+    ],
+)
+def test_inspect_typescript(test_input, expected):
+    cell = new_code_cell(source=test_input)
+    assert translators.TypescriptTranslator.inspect(cell) == expected
