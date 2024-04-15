@@ -575,9 +575,18 @@ class TypescriptTranslator(Translator):
     def comment(cls, cmt_str):
         return f'// {cmt_str}'.strip()
 
+    # NOTE: variable declarations in deno flavored typescript
+    # are tolerant when in ipynb but intolerant when in ts scripts
+    # towit, we have hte option to either use:
+    # var a = 1 followed by var a = 2
+    # or
+    # let a = 1 followed by `a = 2` (note the missing let)
+    # We cannot use other combinations including const and still support ts notebooks
+    # As such, prefer the modern let due to stricter behaviors in reference compared to var
+    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/let
     @classmethod
     def assign(cls, name, str_val):
-        return f'let {name} = {str_val};'
+        return f'{name} = {str_val};'
 
     # TODO: implement parameter parsing / inspect
     # Note this is only implemented in PythonTranslator and not in other implementations
